@@ -23,42 +23,35 @@ public class UserController {
     @PostMapping
     public User create(@Valid @RequestBody User user) {
         log.debug("Получен запрос POST /user");
-        if (user.getName().isBlank()) {
-            log.debug("Имя не задано. В качестве имени будет использован логин");
-            log.debug("создание пользователя без имени");
-            user.setId(idUser);
-            ++idUser;
-            user.setName(user.getLogin());
-            users.put(user.getId(), user);
-        } else {
-            log.debug("создание пользователя");
-            user.setId(idUser);
-            ++idUser;
-            users.put(user.getId(), user);
-        }
+        setTheName(user);
+        log.debug("создание пользователя");
+        user.setId(idUser);
+        ++idUser;
+        users.put(user.getId(), user);
+
         return user;
     }
 
     @PutMapping
     public User update(@Valid @RequestBody User user) {
+        log.debug("Получен запрос PUT /users");
         if (!(users.containsKey(user.getId()))) {
             log.debug("Обработка исключения: неверный идентификатор");
             throw new ValidationException("неверный идентификатор");
         }
-        log.debug("Получен запрос PUT /users");
-        if (user.getName().isBlank()) {
-            log.debug("Имя не задано. В качестве имени будет использован логин");
-            log.debug("обновление пользователя");
-            if (users.containsKey(user.getId())) {
-                users.put(user.getId(), user);
-            }
-        } else {
-            log.debug("обновление пользователя");
-            if (users.containsKey(user.getId())) {
-                users.put(user.getId(), user);
-            }
+        setTheName(user);
+        log.debug("обновление пользователя");
+        if (users.containsKey(user.getId())) {
+            users.put(user.getId(), user);
         }
         return user;
+    }
+
+    private void setTheName(User user) {
+        if (user.getName() == null || user.getName().isBlank()) {
+            log.debug("Имя не задано. В качестве имени будет использован логин");
+            user.setName(user.getLogin());
+        }
     }
 
     @GetMapping

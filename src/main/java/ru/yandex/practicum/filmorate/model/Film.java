@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.*;
 import java.time.LocalDate;
@@ -11,10 +10,9 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class Film {
     private int id;
-
     @NotBlank
     private String name;
-    @Length(max = 200)
+    @Size(max = 200)
     private String description;
     @NotNull
     private LocalDate releaseDate;

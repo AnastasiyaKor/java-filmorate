@@ -13,11 +13,10 @@ public class User {
     @NotBlank
     @Email
     private String email;
-
     @NotBlank
     private String login;
     private String name;
-    @Past
+    @PastOrPresent
     private LocalDate birthday;
 
     public User(String email, String login, String name, LocalDate birthday) {
