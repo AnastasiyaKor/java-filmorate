@@ -5,11 +5,14 @@ import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 public class User {
-    private int id;
+    private List<Long> friends = new ArrayList<>();
+    private long id;
     @NotBlank
     @Email
     private String email;

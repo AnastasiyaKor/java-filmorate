@@ -2,15 +2,17 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.ValidationException;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import javax.validation.Valid;
-import java.time.LocalDate;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.List;
 
 @Slf4j
 @Validated
@@ -18,48 +20,67 @@ import java.util.HashMap;
 @RequiredArgsConstructor
 @RequestMapping(value = "/films")
 public class FilmController {
-    private final HashMap<Integer, Film> films = new HashMap<>();
-    private int idFilms = 1;
-    private static final LocalDate dateMin = LocalDate.of(1895, 12, 28);
+    FilmStorage filmStorage;
+    UserStorage userStorage;
+    FilmService filmService;
 
-    //добавление фильма
+    @Autowired
+    public FilmController(FilmStorage filmStorage, UserStorage userStorage, FilmService filmService) {
+        this.filmStorage = filmStorage;
+        this.userStorage = userStorage;
+        this.filmService = filmService;
+    }
+
+    //создание фильма
     @PostMapping
     public Film create(@Valid @RequestBody Film film) {
-        log.debug("Получен запрос POST /films");
-        validatorFilm(film);
-        log.debug("создание фильма");
-        film.setId(idFilms);
-        ++idFilms;
-        films.put(film.getId(), film);
+        log.debug("Получен запрос POST на создание фильма");
+        filmStorage.create(film);
         return film;
     }
 
     // обновление фильма
     @PutMapping
     public Film update(@Valid @RequestBody Film film) {
-        if (!(films.containsKey(film.getId()))) {
-            log.debug("Обработка исключения: неверный идентификатор");
-            throw new ValidationException("неверный идентификатор");
-        }
-        log.debug("Получен запрос PUT /films");
-        validatorFilm(film);
-        log.debug("обновление фильма");
-        if (films.containsKey(film.getId())) {
-            films.put(film.getId(), film);
-        }
+        log.debug("Получен запрос PUT на обновление фильма");
+        filmStorage.update(film);
         return film;
+    }
+
+    //получение фильма по id
+    @GetMapping("/{id}")
+    public Film getFilm(@PathVariable long id) {
+        log.debug("Получен запрос GET: получить фильм по id");
+        return filmStorage.getFilm(id);
     }
 
     //получение всех фильмов
     @GetMapping
-    public Collection<Film> findAll() {
-        return films.values();
+    public Collection<Film> findAllFilms() {
+
+        return filmStorage.findAllFilms();
     }
 
-    private void validatorFilm(Film film) {
-        if (film.getReleaseDate().isBefore(dateMin)) {
-            log.debug("Обработка исключения: дата релиза неверная");
-            throw new ValidationException("дата релиза не должна быть раньше 28 декабря 1895 года");
-        }
+    //пользователь ставит лайк фильму
+    @PutMapping("/{id}/like/{userId}")
+    public Collection<Long> addLikeFilm(@Valid @RequestBody @PathVariable long id, @PathVariable long userId) {
+        log.debug("Получен запрос PUT: поставить лайк фильму");
+        filmService.addLikeFilm(filmStorage.getFilm(id), userStorage.getUser(userId).getId());
+        return filmStorage.getFilm(id).getLikes();
+    }
+
+    //пользователь удаляет лайк
+    @DeleteMapping("/{id}/like/{userId}")
+    public Collection<Long> deleteLikeFilm(@Valid @RequestBody @PathVariable long id, @PathVariable long userId) {
+        log.debug("Получен запрос DELETE: удалить лайк");
+        filmService.deleteLikeFilm(filmStorage.getFilm(id), userStorage.getUser(userId).getId());
+        return filmStorage.getFilm(id).getLikes();
+    }
+
+    //возвращает список из первых count фильмов по количеству лайков
+    @GetMapping("/popular")
+    public List<Film> getListPopularFilms(@RequestParam(required = false, defaultValue = "10") int count) {
+        log.debug("Получен запрос GET: получить список популярных фильмов");
+        return filmService.getListPopularFilms(count);
     }
 }
