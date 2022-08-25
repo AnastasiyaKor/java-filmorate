@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 public class FilmService {
     private final FilmStorage filmStorage;
     private final UserService userService;
-    private int like = 1;
 
     @Autowired
     public FilmService(FilmStorage filmStorage, UserService userService) {
@@ -24,21 +23,11 @@ public class FilmService {
         this.userService = userService;
     }
 
-    private void addLike(Film film) {
-        film.setRate(like);
-        ++like;
-    }
-
-    private void deleteLike(Film film) {
-        film.setRate(like);
-        --like;
-    }
-
     //добавление лайка
     public List<Long> addLikeFilm(long id, long userId) {
         Film film = getFilmById(id);
         if (!(film.getLikes().contains(userService.getUserById(userId).getId()))) {
-            addLike(film);
+            film.addLike(userId);
             film.getLikes().add(userService.getUserById(userId).getId());
         } else {
             throw new UserAlreadyExistException("Пользователь уже поставил лайк");
@@ -50,7 +39,7 @@ public class FilmService {
     public List<Long> deleteLikeFilm(long id, long userId) {
         Film film = getFilmById(id);
         if ((film.getLikes().contains(userService.getUserById(userId).getId()))) {
-            deleteLike(film);
+            film.deleteLike(userId);
             film.getLikes().remove(userService.getUserById(userId).getId());
         } else {
             throw new UserDoesNotExistException("Пользователь с идентификатором: " + userId + " еще не ставил лайк.");
