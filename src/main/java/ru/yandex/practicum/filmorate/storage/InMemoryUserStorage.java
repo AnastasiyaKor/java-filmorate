@@ -29,18 +29,12 @@ public class InMemoryUserStorage implements UserStorage {
     //получение фильма по id
     @Override
     public Optional<User> getUserById(long id) {
-        return Optional.of(users.get(id));
+        return Optional.ofNullable(users.get(id));
     }
 
     //получение всех пользователей
     @Override
     public List<User> findAllUser() {
         return new ArrayList<>(users.values());
-    }
-
-    //получение мапы с пользователями
-    @Override
-    public Map<Long, User> getUsers() {
-        return users;
     }
 }

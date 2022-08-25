@@ -35,7 +35,8 @@ public class FilmService {
     }
 
     //добавление лайка
-    public List<Long> addLikeFilm(Film film, long userId) {
+    public List<Long> addLikeFilm(long id, long userId) {
+        Film film = getFilmById(id);
         if (!(film.getLikes().contains(userService.getUserById(userId).getId()))) {
             addLike(film);
             film.getLikes().add(userService.getUserById(userId).getId());
@@ -46,12 +47,13 @@ public class FilmService {
     }
 
     //удаление лайка
-    public List<Long> deleteLikeFilm(Film film, long userId) {
+    public List<Long> deleteLikeFilm(long id, long userId) {
+        Film film = getFilmById(id);
         if ((film.getLikes().contains(userService.getUserById(userId).getId()))) {
             deleteLike(film);
             film.getLikes().remove(userService.getUserById(userId).getId());
         } else {
-            throw new UserDoesNotExistException("Пользователь с идентификатором: " + userId + " не ставил лайк.");
+            throw new UserDoesNotExistException("Пользователь с идентификатором: " + userId + " еще не ставил лайк.");
         }
         return film.getLikes();
     }
@@ -65,10 +67,7 @@ public class FilmService {
     }
 
     public Film getFilmById(long id) {
-        if (id > 0) {
-            return filmStorage.getFilmById(id).orElseThrow(() -> new FilmDoesNotExistException("фильм не найден"));
-        }
-        throw new FilmDoesNotExistException("id фильма должен быть положительным");
+        return filmStorage.getFilmById(id).orElseThrow(() -> new FilmDoesNotExistException("фильм не найден"));
     }
 
     public Film create(Film film) {
@@ -76,7 +75,7 @@ public class FilmService {
     }
 
     public Film update(Film film) {
-        if (filmStorage.getFilms().containsKey(film.getId())) {
+        if (getFilmById(film.getId()) != null) {
             return filmStorage.update(film);
         } else {
             throw new FilmDoesNotExistException("неверный идентификатор");
@@ -84,7 +83,6 @@ public class FilmService {
     }
 
     //получение всех фильмов
-
     public List<Film> findAllFilms() {
         return filmStorage.findAllFilms();
     }

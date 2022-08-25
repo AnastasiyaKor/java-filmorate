@@ -7,8 +7,8 @@ import ru.yandex.practicum.filmorate.exception.UserDoesNotExistException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -20,10 +20,10 @@ public class UserService {
     }
 
     //добавление в друзья
-    public List<Long> addFriends(User user, User userOther) {
-        if (userOther.getId() < 0) {
-            throw new UserDoesNotExistException("Пользователь не существует");
-        } else if (user.getFriends().contains(userOther.getId())) {
+    public List<Long> addFriends(long id, long friendId) {
+        User user = getUserById(id);
+        User userOther = getUserById(friendId);
+        if (user.getFriends().contains(userOther.getId())) {
             throw new UserAlreadyExistException("Пользователь уже добавлен в друзья");
         } else {
             user.getFriends().add(userOther.getId());
@@ -33,7 +33,9 @@ public class UserService {
     }
 
     //удаление из друзей
-    public List<Long> deleteFriends(User user, User userOther) {
+    public List<Long> deleteFriends(long id, long friendId) {
+        User user = getUserById(id);
+        User userOther = getUserById(friendId);
         if (user.getFriends().contains(userOther.getId())) {
             user.getFriends().remove(userOther.getId());
             userOther.getFriends().remove(user.getId());
@@ -46,29 +48,23 @@ public class UserService {
 
     //получение списка друзей
     public List<User> getUserFriends(long id) {
-        List<User> friends = new ArrayList<>();
-        getUserById(id).getFriends().stream()
-                .filter(getUserById(id).getFriends()::contains)
-                .forEach(x -> friends.add(getUserById(x)));
-        return friends;
+        return getUserById(id).getFriends().stream()
+                .map(this::getUserById)
+                .collect(Collectors.toList());
     }
 
     //вывод списка общих друзей
     public List<User> getListMutualFriends(long id, long otherId) {
-        List<User> listMutualFriends = new ArrayList<>();
-        getUserById(id).getFriends().stream()
+        return getUserById(id).getFriends().stream()
                 .filter(getUserById(otherId).getFriends()::contains)
-                .forEach(x -> listMutualFriends.add(getUserById(x)));
-        return listMutualFriends;
+                .map(this::getUserById)
+                .collect(Collectors.toList());
     }
 
     //получение пользователя по id
     public User getUserById(long id) {
-        if (id > 0) {
-            return userStorage.getUserById(id).orElseThrow(() ->
-                    new UserDoesNotExistException("пользователь не найден"));
-        }
-        throw new UserDoesNotExistException("Id пользователя должен быть больше 0");
+        return userStorage.getUserById(id).orElseThrow(() ->
+                new UserDoesNotExistException("пользователь не найден"));
     }
 
     public User create(User user) {
@@ -76,7 +72,7 @@ public class UserService {
     }
 
     public User update(User user) {
-        if (userStorage.getUsers().containsKey(user.getId())) {
+        if (getUserById(user.getId()) != null) {
             return userStorage.update(user);
         } else {
             throw new UserDoesNotExistException("Пользователь: " + user + " не существует");

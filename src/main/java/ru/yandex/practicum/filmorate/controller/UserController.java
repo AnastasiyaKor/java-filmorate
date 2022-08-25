@@ -54,14 +54,14 @@ public class UserController {
     @PutMapping("/{id}/friends/{friendId}")
     public List<Long> addFriends(@RequestBody @PathVariable long id, @PathVariable long friendId) {
         log.debug("Получен запрос PUT на добавление в друзья");
-        return userService.addFriends(userService.getUserById(id), userService.getUserById(friendId));
+        return userService.addFriends(id, friendId);
     }
 
     //удаление из друзей
     @DeleteMapping("/{id}/friends/{friendId}")
     public List<Long> deleteFriends(@RequestBody @PathVariable long id, @PathVariable long friendId) {
         log.debug("Получен запрос DELETE  на удаление из друзей");
-        return userService.deleteFriends(userService.getUserById(id), userService.getUserById(friendId));
+        return userService.deleteFriends(id, friendId);
     }
 
     //возвращаем список пользователей, являющихся его друзьями

@@ -8,7 +8,6 @@ import ru.yandex.practicum.filmorate.exception.FilmDoesNotExistException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.service.UserService;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
@@ -22,7 +21,6 @@ import java.util.List;
 @RequestMapping(value = "/films")
 public class FilmController {
     private static final LocalDate DATE_MIN = LocalDate.of(1895, 12, 28);
-    private final UserService userService;
     private final FilmService filmService;
 
     //создание фильма
@@ -41,7 +39,7 @@ public class FilmController {
         if (film != null) {
             validatorFilm(film);
             filmService.update(film);
-        }else{
+        } else {
             throw new FilmDoesNotExistException("неверный идентификатор");
         }
         return film;
@@ -64,28 +62,26 @@ public class FilmController {
     @PutMapping("/{id}/like/{userId}")
     public List<Long> addLikeFilm(@RequestBody @PathVariable long id, @PathVariable long userId) {
         log.debug("Получен запрос PUT: поставить лайк фильму");
-        filmService.addLikeFilm(filmService.getFilmById(id), userService.getUserById(userId).getId());
-        return filmService.getFilmById(id).getLikes();
+        return filmService.addLikeFilm(id, userId);
     }
 
     //пользователь удаляет лайк
     @DeleteMapping("/{id}/like/{userId}")
     public List<Long> deleteLikeFilm(@RequestBody @PathVariable long id, @PathVariable long userId) {
         log.debug("Получен запрос DELETE: удалить лайк");
-        filmService.deleteLikeFilm(filmService.getFilmById(id), userService.getUserById(userId).getId());
-        return filmService.getFilmById(id).getLikes();
+        return filmService.deleteLikeFilm(id, userId);
     }
 
     //возвращает список из первых count фильмов по количеству лайков
     @GetMapping("/popular")
     public List<Film> getListPopularFilms(@RequestParam(required = false, defaultValue = "10")
-                                              @Valid @Positive int count) {
+                                          @Valid @Positive int count) {
         log.debug("Получен запрос GET: получить список популярных фильмов");
         return filmService.getListPopularFilms(count);
     }
 
     private void validatorFilm(Film film) {
-        if (film.getReleaseDate().isBefore(DATE_MIN )) {
+        if (film.getReleaseDate().isBefore(DATE_MIN)) {
             throw new ValidationException("дата релиза не должна быть раньше 28 декабря 1895 года");
         }
     }

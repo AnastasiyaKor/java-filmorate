@@ -35,12 +35,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     //получение фильма по id
     @Override
     public Optional<Film> getFilmById(long id) {
-        return Optional.of(films.get(id));
+        return Optional.ofNullable(films.get(id));
     }
 
-    //получение мапы с фильмами
-    @Override
-    public Map<Long, Film> getFilms() {
-        return films;
-    }
 }
