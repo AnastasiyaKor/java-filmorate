@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.FilmDoesNotExistException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
@@ -36,12 +35,8 @@ public class FilmController {
     @PutMapping
     public Film update(@Valid @RequestBody Film film) {
         log.debug("Получен запрос PUT на обновление фильма");
-        if (film != null) {
-            validatorFilm(film);
-            filmService.update(film);
-        } else {
-            throw new FilmDoesNotExistException("неверный идентификатор");
-        }
+        validatorFilm(film);
+        filmService.update(film);
         return film;
     }
 

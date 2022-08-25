@@ -75,7 +75,7 @@ public class FilmService {
     }
 
     public Film update(Film film) {
-        if (getFilmById(film.getId()) != null) {
+        if (film.getId() > 0) {
             return filmStorage.update(film);
         } else {
             throw new FilmDoesNotExistException("неверный идентификатор");

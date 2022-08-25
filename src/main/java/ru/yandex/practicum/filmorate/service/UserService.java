@@ -72,7 +72,7 @@ public class UserService {
     }
 
     public User update(User user) {
-        if (getUserById(user.getId()) != null) {
+        if (user.getId() > 0) {
             return userStorage.update(user);
         } else {
             throw new UserDoesNotExistException("Пользователь: " + user + " не существует");
