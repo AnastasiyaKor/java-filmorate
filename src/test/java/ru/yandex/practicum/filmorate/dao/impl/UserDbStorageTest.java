@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.jdbc.Sql;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -15,6 +16,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
+@Sql(scripts = "classpath:data.sql",
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 class UserDbStorageTest {
@@ -64,35 +67,5 @@ class UserDbStorageTest {
                 .hasValueSatisfying(user ->
                         assertThat(user).hasFieldOrPropertyWithValue("id", 1L)
                 );
-    }
-
-    @Test
-    void delete() {
-        User user1 = new User("Анастасия", "nastya-16.94@mail.ru", "StasyKor",
-                LocalDate.of(1994, 03, 17));
-        User user2 = new User("Елена", "elena@mail.ru", "Lenka",
-                LocalDate.of(1996, 07, 15));
-        User user3 = new User("Мария", "masha003@mail.ru", "Mari",
-                LocalDate.of(1990, 12, 22));
-        userDbStorage.create(user1);
-        userDbStorage.create(user2);
-        userDbStorage.create(user3);
-        userDbStorage.delete(1L);
-        assertEquals(2, userDbStorage.findAllUser().size());
-    }
-
-    @Test
-    void deleteAll() {
-        User user1 = new User("Анастасия", "nastya-16.94@mail.ru", "StasyKor",
-                LocalDate.of(1994, 03, 17));
-        User user2 = new User("Елена", "elena@mail.ru", "Lenka",
-                LocalDate.of(1996, 07, 15));
-        User user3 = new User("Мария", "masha003@mail.ru", "Mari",
-                LocalDate.of(1990, 12, 22));
-        userDbStorage.create(user1);
-        userDbStorage.create(user2);
-        userDbStorage.create(user3);
-        userDbStorage.deleteAll();
-        assertEquals(0, userDbStorage.findAllUser().size());
     }
 }
