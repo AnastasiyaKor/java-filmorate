@@ -1,25 +1,33 @@
 package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dao.impl.FilmDbStorage;
 import ru.yandex.practicum.filmorate.exception.FilmDoesNotExistException;
 import ru.yandex.practicum.filmorate.exception.UserAlreadyExistException;
 import ru.yandex.practicum.filmorate.exception.UserDoesNotExistException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 public class FilmService {
-    private final FilmStorage filmStorage;
+    private final JdbcTemplate jdbcTemplate;
+    private final FilmDbStorage filmDbStorage;
     private final UserService userService;
+    private static final String CREATE = "INSERT INTO film_likes (film_id, user_id) VALUES (?,?)";
+    private static final String DELETE = "DELETE FROM film_likes WHERE film_id =? AND user_id =?";
+    private static final String POPULAR = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa " +
+            "FROM films AS f LEFT JOIN film_likes AS fl ON f.id = fl.film_id " +
+            "GROUP BY f.id ORDER BY COUNT(fl.film_id) DESC LIMIT ?";
 
     @Autowired
-    public FilmService(FilmStorage filmStorage, UserService userService) {
-        this.filmStorage = filmStorage;
+    public FilmService(JdbcTemplate jdbcTemplate, FilmDbStorage filmDbStorage, UserService userService) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.filmDbStorage = filmDbStorage;
         this.userService = userService;
     }
 
@@ -27,8 +35,7 @@ public class FilmService {
     public List<Long> addLikeFilm(long id, long userId) {
         Film film = getFilmById(id);
         if (!(film.getLikes().contains(userService.getUserById(userId).getId()))) {
-            film.addLike(userId);
-            film.getLikes().add(userService.getUserById(userId).getId());
+            jdbcTemplate.update(CREATE, id, userId);
         } else {
             throw new UserAlreadyExistException("Пользователь уже поставил лайк");
         }
@@ -39,8 +46,7 @@ public class FilmService {
     public List<Long> deleteLikeFilm(long id, long userId) {
         Film film = getFilmById(id);
         if ((film.getLikes().contains(userService.getUserById(userId).getId()))) {
-            film.deleteLike(userId);
-            film.getLikes().remove(userService.getUserById(userId).getId());
+            jdbcTemplate.update(DELETE, id, userId);
         } else {
             throw new UserDoesNotExistException("Пользователь с идентификатором: " + userId + " еще не ставил лайк.");
         }
@@ -49,27 +55,50 @@ public class FilmService {
 
     //вывод 10 наиболее популярных фильмов по количеству лайков
     public List<Film> getListPopularFilms(int count) {
-        return filmStorage.findAllFilms().stream()
-                .sorted(Comparator.comparingInt(x -> -x.getLikes().size()))
-                .limit(count)
-                .collect(Collectors.toList());
+        List<Film> filmList = new ArrayList<>();
+        return jdbcTemplate.query(POPULAR, rs -> {
+            while (rs.next()) {
+                Film film = new Film().toBuilder()
+                        .id(rs.getLong("id"))
+                        .name(rs.getString("name"))
+                        .description(rs.getString("description"))
+                        .duration(rs.getInt("duration"))
+                        .releaseDate(rs.getDate("release_date").toLocalDate())
+                        .mpa(filmDbStorage.mpaMapping(rs.getInt("MPA")))
+                        .genres(filmDbStorage.genreMapper(rs.getInt("id")))
+                        .likes(filmDbStorage.likesMapper(rs.getInt("id")))
+                        .build();
+                filmList.add(film);
+            }
+            return filmList;
+        }, count);
     }
 
     public Film getFilmById(long id) {
-        return filmStorage.getFilmById(id).orElseThrow(() -> new FilmDoesNotExistException("фильм не найден"));
+        return filmDbStorage.getFilmById(id).orElseThrow(() -> new FilmDoesNotExistException("фильм не найден"));
     }
 
-    public Film create(Film film) {
-        return filmStorage.create(film);
+    public Optional<Film> create(Film film) {
+        return filmDbStorage.create(film);
     }
 
-    public Film update(Film film) {
+    public Optional<Film> update(Film film) {
         getFilmById(film.getId());
-        return filmStorage.update(film);
+        return filmDbStorage.update(film);
     }
 
     //получение всех фильмов
     public List<Film> findAllFilms() {
-        return filmStorage.findAllFilms();
+        return filmDbStorage.findAllFilms();
+    }
+
+    //удаление фильма
+    public void delete(Long id) {
+        filmDbStorage.delete(id);
+    }
+
+    //удаление всех фильмов
+    public void deleteAll() {
+        filmDbStorage.deleteAll();
     }
 }

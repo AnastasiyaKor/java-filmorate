@@ -31,13 +31,27 @@ public class FilmController {
         return film;
     }
 
-    // обновление фильма
+    //обновление фильма
     @PutMapping
     public Film update(@Valid @RequestBody Film film) {
         log.debug("Получен запрос PUT на обновление фильма");
         validatorFilm(film);
         filmService.update(film);
         return film;
+    }
+
+    //удаление фильма
+    @DeleteMapping("{id}")
+    public void delete(@RequestBody @PathVariable long id) {
+        log.debug("Получен запрос DELETE: удалить фильм по id");
+        filmService.delete(id);
+    }
+
+    //удаление всех фильмов
+    @DeleteMapping
+    public void deleteAll() {
+        log.debug("Получен запрос DELETE: удалить все фильмы");
+        filmService.deleteAll();
     }
 
     //получение фильма по id
@@ -47,27 +61,28 @@ public class FilmController {
         return filmService.getFilmById(id);
     }
 
-    //получение всех фильмов
+    //получение списка фильмов
     @GetMapping
     public List<Film> findAllFilms() {
+        log.debug("Получен запрос DET: получить все фильмы");
         return filmService.findAllFilms();
     }
 
-    //пользователь ставит лайк фильму
+    //добавление лайка фильму
     @PutMapping("/{id}/like/{userId}")
     public List<Long> addLikeFilm(@RequestBody @PathVariable long id, @PathVariable long userId) {
         log.debug("Получен запрос PUT: поставить лайк фильму");
         return filmService.addLikeFilm(id, userId);
     }
 
-    //пользователь удаляет лайк
+    //удаление лайка у фильма
     @DeleteMapping("/{id}/like/{userId}")
     public List<Long> deleteLikeFilm(@RequestBody @PathVariable long id, @PathVariable long userId) {
         log.debug("Получен запрос DELETE: удалить лайк");
         return filmService.deleteLikeFilm(id, userId);
     }
 
-    //возвращает список из первых count фильмов по количеству лайков
+    //получение популярных фильмов
     @GetMapping("/popular")
     public List<Film> getListPopularFilms(@RequestParam(required = false, defaultValue = "10")
                                           @Valid @Positive int count) {

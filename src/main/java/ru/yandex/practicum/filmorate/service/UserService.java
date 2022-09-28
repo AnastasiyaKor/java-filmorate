@@ -1,22 +1,36 @@
 package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dao.UserMapper;
+import ru.yandex.practicum.filmorate.dao.impl.UserDbStorage;
 import ru.yandex.practicum.filmorate.exception.UserAlreadyExistException;
 import ru.yandex.practicum.filmorate.exception.UserDoesNotExistException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 public class UserService {
-    private final UserStorage userStorage;
+    private final UserDbStorage userDbStorage;
+    private final JdbcTemplate jdbcTemplate;
+    private static final String ADD_FRIENDS = "INSERT INTO friends (user_id, friend_id) VALUES (?,?)";
+    private static final String ADD_FRIENDS_LIST = "SELECT friend_id FROM friends WHERE user_id =?";
+    private static final String DELETE_FRIENDS = "DELETE FROM friends WHERE user_id =? AND friend_id =?";
+    private static final String DELETE_FRIENDS_LIST = "SELECT friend_id FROM friends WHERE user_id =?";
+    private static final String GET_FRIENDS = "SELECT * FROM users " +
+            "WHERE id IN (SELECT friend_id FROM friends WHERE user_id =?)";
+    private static final String LIST_MUTUAL_FRIENDS = "SELECT * FROM users" +
+            " WHERE id IN (SELECT friend_id FROM friends WHERE user_id =?) " +
+            "AND id IN (SELECT friend_id FROM friends WHERE user_id =?)";
 
     @Autowired
-    public UserService(UserStorage userStorage) {
-        this.userStorage = userStorage;
+    public UserService(UserDbStorage userDbStorage, JdbcTemplate jdbcTemplate) {
+        this.userDbStorage = userDbStorage;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     //добавление в друзья
@@ -26,57 +40,63 @@ public class UserService {
         if (user.getFriends().contains(userOther.getId())) {
             throw new UserAlreadyExistException("Пользователь уже добавлен в друзья");
         } else {
-            user.getFriends().add(userOther.getId());
-            userOther.getFriends().add(user.getId());
+            jdbcTemplate.update(ADD_FRIENDS, id, friendId);
         }
-        return user.getFriends();
+        return jdbcTemplate.query(ADD_FRIENDS_LIST, rs -> {
+            List<Long> friends = new ArrayList<>();
+            while (rs.next()) {
+                friends.add(rs.getLong("friend_id"));
+            }
+            return friends;
+        }, id);
     }
 
     //удаление из друзей
     public List<Long> deleteFriends(long id, long friendId) {
-        User user = getUserById(id);
-        User userOther = getUserById(friendId);
-        if (user.getFriends().contains(userOther.getId())) {
-            user.getFriends().remove(userOther.getId());
-            userOther.getFriends().remove(user.getId());
-        } else {
-            throw new UserDoesNotExistException("Пользователь с идентификатором: "
-                    + userOther.getId() + " не существует");
-        }
-        return user.getFriends();
+        jdbcTemplate.update(DELETE_FRIENDS, id, friendId);
+        return jdbcTemplate.query(DELETE_FRIENDS_LIST, rs -> {
+            List<Long> friends = new ArrayList<>();
+            while (rs.next()) {
+                friends.add(rs.getLong("friend_id"));
+            }
+            return friends;
+        }, id);
     }
 
     //получение списка друзей
     public List<User> getUserFriends(long id) {
-        return getUserById(id).getFriends().stream()
-                .map(this::getUserById)
-                .collect(Collectors.toList());
+        return jdbcTemplate.query(GET_FRIENDS, new UserMapper(), id);
     }
 
     //вывод списка общих друзей
     public List<User> getListMutualFriends(long id, long otherId) {
-        return getUserById(id).getFriends().stream()
-                .filter(getUserById(otherId).getFriends()::contains)
-                .map(this::getUserById)
-                .collect(Collectors.toList());
+        return jdbcTemplate.query(LIST_MUTUAL_FRIENDS, new UserMapper(), id, otherId);
     }
 
     //получение пользователя по id
     public User getUserById(long id) {
-        return userStorage.getUserById(id).orElseThrow(() ->
+        return userDbStorage.getUserById(id).orElseThrow(() ->
                 new UserDoesNotExistException("пользователь не найден"));
     }
 
-    public User create(User user) {
-        return userStorage.create(user);
+    public Optional<User> create(User user) {
+        return userDbStorage.create(user);
     }
 
     public User update(User user) {
         getUserById(user.getId());
-        return userStorage.update(user);
+        return userDbStorage.update(user);
     }
 
     public List<User> findAllUser() {
-        return userStorage.findAllUser();
+        return userDbStorage.findAllUser();
+    }
+
+    public void delete(Long id) {
+        userDbStorage.delete(id);
+    }
+
+    public void deleteAll() {
+        userDbStorage.deleteAll();
     }
 }
