@@ -21,12 +21,12 @@ import java.util.stream.Collectors;
 public class FilmDbStorage implements FilmDao {
     private final JdbcTemplate jdbcTemplate;
     private static final String GET_ALL =
-            "SELECT films.id, films.name, films.description, films.duration, films.release_date, rate, mpa " +
+            "SELECT films.id, films.name, films.description, films.duration, films.release_date, rate, mpa, mr.name " +
                     "FROM films " +
-                    "JOIN mpa_rating ON films.mpa = mpa_rating.id";
+                    "JOIN mpa_rating AS mr ON films.mpa = mr.id";
     private static final String GET_BY_ID = "SELECT " +
-            "films.id, films.name, films.description, films.duration, films.release_date, rate, mpa  " +
-            "FROM films INNER JOIN mpa_rating ON films.mpa = mpa_rating.id " +
+            "films.id, films.name, films.description, films.duration, films.release_date, rate, mpa, mr.name   " +
+            "FROM films INNER JOIN mpa_rating AS mr ON films.mpa = mr.id " +
             "WHERE films.id =?";
     private static final String CREATE = "INSERT INTO " +
             "films (name, description, release_date, duration, rate, mpa) " +

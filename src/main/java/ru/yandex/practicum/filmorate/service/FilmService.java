@@ -20,12 +20,10 @@ public class FilmService {
     private final UserService userService;
     private static final String CREATE = "INSERT INTO film_likes (film_id, user_id) VALUES (?,?)";
     private static final String DELETE = "DELETE FROM film_likes WHERE film_id =? AND user_id =?";
-    private static final String POPULAR = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, mr.name " +
-            "FROM film_likes AS fl RIGHT JOIN films AS f ON fl.film_id = f.id LEFT JOIN mpa_rating AS mr ON f.mpa = mr.id " +
+    private static final String POPULAR = "SELECT f.id, f.name, f.description, f.release_date, " +
+            "f.duration, f.mpa, mr.name FROM film_likes AS fl RIGHT JOIN films AS f ON fl.film_id = f.id " +
+            "LEFT JOIN mpa_rating AS mr ON f.mpa = mr.id " +
             "GROUP BY f.id ORDER BY COUNT(fl.film_id) DESC LIMIT ?";
-        /*"SELECT f.id, f.name, f.description, f.release_date, f.duration, mr.name " +
-            "FROM film_likes AS fl RIGHT JOIN films  AS f ON fl.film_id = f.id " +
-            "LEFT JOIN mpa_rating AS mr ON f.mpa = mr.id GROUP BY f.id ORDER BY COUNT(fl.film_id) DESC LIMIT ?";*/
 
     @Autowired
     public FilmService(JdbcTemplate jdbcTemplate, FilmDbStorage filmDbStorage, UserService userService) {
