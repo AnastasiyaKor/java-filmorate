@@ -42,7 +42,7 @@ public class FilmController {
 
     //удаление фильма
     @DeleteMapping("{id}")
-    public void delete(@RequestBody @PathVariable long id) {
+    public void delete(@PathVariable long id) {
         log.debug("Получен запрос DELETE: удалить фильм по id");
         filmService.delete(id);
     }
@@ -56,7 +56,7 @@ public class FilmController {
 
     //получение фильма по id
     @GetMapping("/{id}")
-    public Film getFilm(@RequestBody @PathVariable long id) {
+    public Film getFilm(@PathVariable long id) {
         log.debug("Получен запрос GET: получить фильм по id");
         return filmService.getFilmById(id);
     }
@@ -70,14 +70,14 @@ public class FilmController {
 
     //добавление лайка фильму
     @PutMapping("/{id}/like/{userId}")
-    public List<Long> addLikeFilm(@RequestBody @PathVariable long id, @PathVariable long userId) {
+    public List<Long> addLikeFilm(@PathVariable long id, @PathVariable long userId) {
         log.debug("Получен запрос PUT: поставить лайк фильму");
         return filmService.addLikeFilm(id, userId);
     }
 
     //удаление лайка у фильма
     @DeleteMapping("/{id}/like/{userId}")
-    public List<Long> deleteLikeFilm(@RequestBody @PathVariable long id, @PathVariable long userId) {
+    public List<Long> deleteLikeFilm(@PathVariable long id, @PathVariable long userId) {
         log.debug("Получен запрос DELETE: удалить лайк");
         return filmService.deleteLikeFilm(id, userId);
     }
@@ -85,7 +85,7 @@ public class FilmController {
     //получение популярных фильмов
     @GetMapping("/popular")
     public List<Film> getListPopularFilms(@RequestParam(required = false, defaultValue = "10")
-                                          @Valid @Positive int count) {
+                                          @Positive int count) {
         log.debug("Получен запрос GET: получить список популярных фильмов");
         return filmService.getListPopularFilms(count);
     }

@@ -20,9 +20,12 @@ public class FilmService {
     private final UserService userService;
     private static final String CREATE = "INSERT INTO film_likes (film_id, user_id) VALUES (?,?)";
     private static final String DELETE = "DELETE FROM film_likes WHERE film_id =? AND user_id =?";
-    private static final String POPULAR = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa " +
-            "FROM films AS f LEFT JOIN film_likes AS fl ON f.id = fl.film_id " +
+    private static final String POPULAR = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, mr.name " +
+            "FROM film_likes AS fl RIGHT JOIN films AS f ON fl.film_id = f.id LEFT JOIN mpa_rating AS mr ON f.mpa = mr.id " +
             "GROUP BY f.id ORDER BY COUNT(fl.film_id) DESC LIMIT ?";
+        /*"SELECT f.id, f.name, f.description, f.release_date, f.duration, mr.name " +
+            "FROM film_likes AS fl RIGHT JOIN films  AS f ON fl.film_id = f.id " +
+            "LEFT JOIN mpa_rating AS mr ON f.mpa = mr.id GROUP BY f.id ORDER BY COUNT(fl.film_id) DESC LIMIT ?";*/
 
     @Autowired
     public FilmService(JdbcTemplate jdbcTemplate, FilmDbStorage filmDbStorage, UserService userService) {
@@ -31,11 +34,18 @@ public class FilmService {
         this.userService = userService;
     }
 
+    private void updateRate(long filmId) {
+        String sqlQuery = "update films f " +
+                "set rate = (select count(l.user_id) from film_likes l where l.film_id = f.id) where f.id = ?";
+        jdbcTemplate.update(sqlQuery, filmId);
+    }
+
     //добавление лайка
     public List<Long> addLikeFilm(long id, long userId) {
         Film film = getFilmById(id);
         if (!(film.getLikes().contains(userService.getUserById(userId).getId()))) {
             jdbcTemplate.update(CREATE, id, userId);
+            updateRate(film.getId());
         } else {
             throw new UserAlreadyExistException("Пользователь уже поставил лайк");
         }
@@ -47,6 +57,7 @@ public class FilmService {
         Film film = getFilmById(id);
         if ((film.getLikes().contains(userService.getUserById(userId).getId()))) {
             jdbcTemplate.update(DELETE, id, userId);
+            updateRate(film.getId());
         } else {
             throw new UserDoesNotExistException("Пользователь с идентификатором: " + userId + " еще не ставил лайк.");
         }

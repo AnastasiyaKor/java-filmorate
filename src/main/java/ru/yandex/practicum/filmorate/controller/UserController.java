@@ -38,7 +38,7 @@ public class UserController {
 
     //получение пользователя по id
     @GetMapping("/{id}")
-    public User getUser(@RequestBody @PathVariable long id) {
+    public User getUser(@PathVariable long id) {
         log.debug("Получен запрос GET: получить пользователя по id");
         return userService.getUserById(id);
     }
@@ -52,7 +52,7 @@ public class UserController {
 
     //удаление пользователя по id
     @DeleteMapping("/{id}")
-    public void delete(@RequestBody @PathVariable long id) {
+    public void delete(@PathVariable long id) {
         log.debug("Получен запрос DELETE: удалить пользователя по id");
         userService.delete(id);
     }
@@ -66,28 +66,28 @@ public class UserController {
 
     //добавление в друзья
     @PutMapping("/{id}/friends/{friendId}")
-    public List<Long> addFriends(@RequestBody @PathVariable long id, @PathVariable long friendId) {
+    public List<Long> addFriends(@PathVariable long id, @PathVariable long friendId) {
         log.debug("Получен запрос PUT на добавление в друзья");
         return userService.addFriends(id, friendId);
     }
 
     //удаление из друзей пользователя
     @DeleteMapping("/{id}/friends/{friendId}")
-    public List<Long> deleteFriends(@RequestBody @PathVariable long id, @PathVariable long friendId) {
+    public List<Long> deleteFriends(@PathVariable long id, @PathVariable long friendId) {
         log.debug("Получен запрос DELETE  на удаление из друзей");
         return userService.deleteFriends(id, friendId);
     }
 
     //получение друзей пользователя
     @GetMapping("/{id}/friends")
-    public List<User> getUserFriends(@RequestBody @PathVariable long id) {
+    public List<User> getUserFriends(@PathVariable long id) {
         log.debug("Получен запрос GET:получить список друзей пользователя");
         return userService.getUserFriends(id);
     }
 
     //получение общего списка друзей
     @GetMapping("/{id}/friends/common/{otherId}")
-    public List<User> getListMutualFriends(@RequestBody @PathVariable long id, @PathVariable long otherId) {
+    public List<User> getListMutualFriends(@PathVariable long id, @PathVariable long otherId) {
         log.debug("Получен запрос GET: получить список общих друзей");
         return userService.getListMutualFriends(id, otherId);
     }

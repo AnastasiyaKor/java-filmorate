@@ -19,7 +19,7 @@ public class MpaController {
 
     //получение рейтинга по id
     @GetMapping("/{id}")
-    public Mpa getMpaById(@RequestBody @PathVariable int id) {
+    public Mpa getMpaById(@PathVariable int id) {
         log.debug("Получен запрос GET: получить рейтинг по id");
         return mpaService.getMpaById(id);
     }
