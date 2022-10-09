@@ -9,5 +9,7 @@ public interface GenreDao {
 
     List<Genre> findAllGenres(); //получение всех жанров
 
-    Optional <Genre> getGenreById(int id); //получение жанра по id
+    Optional<Genre> getGenreById(int id); //получение жанра по id
+
+    void deleteGenre(long filmId); // удаление жанров
 }

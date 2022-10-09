@@ -5,21 +5,22 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.FilmDao;
+import ru.yandex.practicum.filmorate.dao.GenreDao;
+import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.*;
 
-@Component
+@Repository
 public class FilmDbStorage implements FilmDao {
     private final JdbcTemplate jdbcTemplate;
+    private final FilmMapper filmMapper;
+    private final GenreDao genreDao;
     private static final String GET_ALL =
             "SELECT films.id, films.name, films.description, films.duration, films.release_date, rate, mpa, mr.name " +
                     "FROM films " +
@@ -36,19 +37,20 @@ public class FilmDbStorage implements FilmDao {
             "WHERE id =?";
     private static final String DELETE = "DELETE FROM films WHERE id = ?";
     private static final String DELETE_ALL = "DELETE FROM films";
-    private static final String GENRE_MAPPER = "SELECT genres.id, genres.name " +
-            "FROM genres INNER JOIN film_genre ON genres.id = film_genre.genre_id WHERE film_id =?";
-    private static final String MPA_MAPPER = " SELECT * FROM mpa_rating WHERE id =?";
-    private static final String LIKE_MAPPER = "SELECT user_id FROM film_likes WHERE film_id =?";
+    private static final String BATCH_INSERT = "INSERT INTO film_genre VALUES (?,?)";
+    private static final String LIST_GENRE = "SELECT * FROM genres " +
+            "WHERE id IN(SELECT genre_id FROM film_genre WHERE film_id = ?) ORDER BY id";
 
 
     @Autowired
-    public FilmDbStorage(JdbcTemplate jdbcTemplate) {
+    public FilmDbStorage(JdbcTemplate jdbcTemplate, FilmMapper filmMapper, GenreDao genreDao) {
         this.jdbcTemplate = jdbcTemplate;
+        this.filmMapper = filmMapper;
+        this.genreDao = genreDao;
     }
 
     @Override
-    public Optional<Film> create(Film film) {
+    public Film create(Film film) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(CREATE, PreparedStatement.RETURN_GENERATED_KEYS);
@@ -63,15 +65,23 @@ public class FilmDbStorage implements FilmDao {
         Number key = keyHolder.getKey();
         film.setId(key.longValue());
         if (film.getGenres() != null) {
-            film.getGenres()
-                    .forEach(x -> jdbcTemplate.update("INSERT INTO film_genre (film_id, genre_id) VALUES (?,?)",
-                            film.getId(), x.getId()));
+            List<Genre> genreFilm = film.getGenres();
+            filmBatchUpdate(film.getId(), new HashSet<>(genreFilm));
         }
-        return Optional.of(film);
+        return film;
+    }
+
+    public void filmBatchUpdate(Long filmId, Set<Genre> genres) {
+        List<Object[]> batch = new ArrayList<>();
+        for (Genre genre : genres) {
+            Long[] values = new Long[]{filmId, (long) genre.getId()};
+            batch.add(values);
+        }
+        jdbcTemplate.batchUpdate(BATCH_INSERT, batch);
     }
 
     @Override
-    public Optional<Film> update(Film film) {
+    public Film update(Film film) {
         jdbcTemplate.update(UPDATE,
                 film.getName(),
                 film.getDescription(),
@@ -80,48 +90,27 @@ public class FilmDbStorage implements FilmDao {
                 film.getRate(),
                 film.getMpa().getId(),
                 film.getId());
-
-        String sqlDelete = "DELETE FROM film_genre WHERE film_id =?";
-        jdbcTemplate.update(sqlDelete, film.getId());
-        if (!film.getGenres().isEmpty()) {
-            String sqlInsert = "INSERT INTO film_genre VALUES (?,?)";
-            List<Genre> uniqueGenre = film.getGenres().stream()
-                    .distinct()
-                    .collect(Collectors.toList());
-            uniqueGenre.forEach(x -> jdbcTemplate.update(sqlInsert, film.getId(), x.getId()));
-            film.setGenres(uniqueGenre);
-        }
-        return Optional.of(new Film());
+        return film;
     }
 
     @Override
     public List<Film> findAllFilms() {
-        return jdbcTemplate.query(GET_ALL, (rs, rowNum) -> new Film().toBuilder()
-                .id(rs.getInt("id"))
-                .name(rs.getString("name"))
-                .description(rs.getString("description"))
-                .releaseDate(rs.getDate("release_date").toLocalDate())
-                .duration(rs.getInt("duration"))
-                .rate(rs.getInt("rate"))
-                .mpa(mpaMapping(rs.getInt("MPA")))
-                .genres(genreMapper(rs.getInt("id")))
-                .likes(likesMapper(rs.getInt("id")))
-                .build());
+        List<Film> films = jdbcTemplate.query(GET_ALL, filmMapper);
+        for (Film film : films) {
+            List<Genre> genres = new ArrayList<>(genreList(film.getId()));
+            film.setGenres(genres);
+        }
+        return films;
     }
+
+    private List<Genre> genreList(long id) {
+        return jdbcTemplate.query(LIST_GENRE, new BeanPropertyRowMapper<>(Genre.class), id);
+    }
+
 
     @Override
     public Optional<Film> getFilmById(long id) {
-        return jdbcTemplate.query(GET_BY_ID, (rs, rowNum) -> new Film().toBuilder()
-                .id(rs.getInt("id"))
-                .name(rs.getString("name"))
-                .description(rs.getString("description"))
-                .releaseDate(rs.getDate("release_date").toLocalDate())
-                .duration(rs.getInt("duration"))
-                .rate(rs.getInt("rate"))
-                .mpa(mpaMapping(rs.getInt("MPA")))
-                .genres(genreMapper(rs.getInt("id")))
-                .likes(likesMapper(rs.getLong("id")))
-                .build(), id).stream().findAny();
+        return jdbcTemplate.query(GET_BY_ID, filmMapper, id).stream().findAny();
     }
 
     @Override
@@ -134,16 +123,4 @@ public class FilmDbStorage implements FilmDao {
         jdbcTemplate.update(DELETE_ALL);
     }
 
-    public List<Genre> genreMapper(int id) {
-        return jdbcTemplate.query(GENRE_MAPPER, new BeanPropertyRowMapper<>(Genre.class), id);
-    }
-
-    public Mpa mpaMapping(int id) {
-        return jdbcTemplate.query(MPA_MAPPER, new BeanPropertyRowMapper<>(Mpa.class), id)
-                .stream().findFirst().orElse(null);
-    }
-
-    public List<Long> likesMapper(long id) {
-        return jdbcTemplate.queryForList(LIKE_MAPPER, Long.TYPE, id);
-    }
 }

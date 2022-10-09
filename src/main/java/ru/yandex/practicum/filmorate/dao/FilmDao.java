@@ -1,14 +1,16 @@
 package ru.yandex.practicum.filmorate.dao;
 
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface FilmDao {
-    Optional<Film> create(Film film); //добавление фильма
+    Film create(Film film); //добавление фильма
 
-    Optional<Film> update(Film film);  // обновление фильма
+    Film update(Film film);  // обновление фильма
 
     List<Film> findAllFilms(); //получение всех фильмов
 
@@ -17,4 +19,6 @@ public interface FilmDao {
     void delete(Long id); //удаление пользователя по id
 
     void deleteAll(); //удаление всех пользователей
+
+    void filmBatchUpdate(Long filmId, Set<Genre> genres); //запрос в базу данных
 }

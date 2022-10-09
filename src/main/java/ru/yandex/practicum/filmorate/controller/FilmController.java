@@ -2,31 +2,26 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
-import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
-@Validated
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(value = "/films")
 public class FilmController {
-    private static final LocalDate DATE_MIN = LocalDate.of(1895, 12, 28);
+
     private final FilmService filmService;
 
     //создание фильма
     @PostMapping
     public Film create(@Valid @RequestBody Film film) {
         log.debug("Получен запрос POST на создание фильма");
-        validatorFilm(film);
         filmService.create(film);
         return film;
     }
@@ -35,7 +30,6 @@ public class FilmController {
     @PutMapping
     public Film update(@Valid @RequestBody Film film) {
         log.debug("Получен запрос PUT на обновление фильма");
-        validatorFilm(film);
         filmService.update(film);
         return film;
     }
@@ -90,9 +84,5 @@ public class FilmController {
         return filmService.getListPopularFilms(count);
     }
 
-    private void validatorFilm(Film film) {
-        if (film.getReleaseDate().isBefore(DATE_MIN)) {
-            throw new ValidationException("дата релиза не должна быть раньше 28 декабря 1895 года");
-        }
-    }
+
 }

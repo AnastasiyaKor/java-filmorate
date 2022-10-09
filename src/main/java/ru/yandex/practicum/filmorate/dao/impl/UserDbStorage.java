@@ -4,9 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.UserDao;
-import ru.yandex.practicum.filmorate.dao.UserMapper;
+import ru.yandex.practicum.filmorate.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.Date;
@@ -14,9 +14,10 @@ import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.Optional;
 
-@Component
+@Repository
 public class UserDbStorage implements UserDao {
     private static JdbcTemplate jdbcTemplate;
+    private final UserMapper userMapper;
     private static final String GET_ALL = "SELECT * FROM users";
     private static final String GET_BY_ID = "SELECT * FROM users WHERE id = ?";
     private static final String CREATE = "INSERT INTO users(name, email, login, birthday) VALUES(?,?,?,?)";
@@ -24,9 +25,10 @@ public class UserDbStorage implements UserDao {
     private static final String DELETE = "DELETE FROM users WHERE id = ?";
     private static final String DELETE_ALL = "DELETE FROM users";
 
-@Autowired
-    public UserDbStorage(JdbcTemplate jdbcTemplate) {
+    @Autowired
+    public UserDbStorage(JdbcTemplate jdbcTemplate, UserMapper userMapper) {
         this.jdbcTemplate = jdbcTemplate;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -35,8 +37,8 @@ public class UserDbStorage implements UserDao {
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(CREATE, PreparedStatement.RETURN_GENERATED_KEYS);
             ps.setString(1, user.getName());
-            ps.setString(2,user.getEmail());
-            ps.setString(3,user.getLogin());
+            ps.setString(2, user.getEmail());
+            ps.setString(3, user.getLogin());
             ps.setDate(4, Date.valueOf(user.getBirthday()));
             return ps;
         }, keyHolder);
@@ -58,12 +60,12 @@ public class UserDbStorage implements UserDao {
 
     @Override
     public List<User> findAllUser() {
-        return jdbcTemplate.query(GET_ALL, new UserMapper());
+        return jdbcTemplate.query(GET_ALL, userMapper);
     }
 
     @Override
     public Optional<User> getUserById(long id) {
-    return jdbcTemplate.query(GET_BY_ID, new UserMapper(), id).stream().findAny();
+        return jdbcTemplate.query(GET_BY_ID, userMapper, id).stream().findAny();
     }
 
     @Override

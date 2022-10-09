@@ -1,49 +1,39 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.dao.impl.FilmDbStorage;
+import ru.yandex.practicum.filmorate.dao.FilmDao;
+import ru.yandex.practicum.filmorate.dao.GenreDao;
+import ru.yandex.practicum.filmorate.dao.LikeDao;
 import ru.yandex.practicum.filmorate.exception.FilmDoesNotExistException;
 import ru.yandex.practicum.filmorate.exception.UserAlreadyExistException;
 import ru.yandex.practicum.filmorate.exception.UserDoesNotExistException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class FilmService {
-    private final JdbcTemplate jdbcTemplate;
-    private final FilmDbStorage filmDbStorage;
     private final UserService userService;
-    private static final String CREATE = "INSERT INTO film_likes (film_id, user_id) VALUES (?,?)";
-    private static final String DELETE = "DELETE FROM film_likes WHERE film_id =? AND user_id =?";
-    private static final String POPULAR = "SELECT f.id, f.name, f.description, f.release_date, " +
-            "f.duration, f.mpa, mr.name FROM film_likes AS fl RIGHT JOIN films AS f ON fl.film_id = f.id " +
-            "LEFT JOIN mpa_rating AS mr ON f.mpa = mr.id " +
-            "GROUP BY f.id ORDER BY COUNT(fl.film_id) DESC LIMIT ?";
-
-    @Autowired
-    public FilmService(JdbcTemplate jdbcTemplate, FilmDbStorage filmDbStorage, UserService userService) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.filmDbStorage = filmDbStorage;
-        this.userService = userService;
-    }
-
-    private void updateRate(long filmId) {
-        String sqlQuery = "update films f " +
-                "set rate = (select count(l.user_id) from film_likes l where l.film_id = f.id) where f.id = ?";
-        jdbcTemplate.update(sqlQuery, filmId);
-    }
+    private final FilmDao filmDao;
+    private final FilmMapper filmMapper;
+    private final GenreDao genreDao;
+    private final LikeDao likeDao;
+    private static final LocalDate DATE_MIN = LocalDate.of(1895, 12, 28);
 
     //добавление лайка
     public List<Long> addLikeFilm(long id, long userId) {
         Film film = getFilmById(id);
         if (!(film.getLikes().contains(userService.getUserById(userId).getId()))) {
-            jdbcTemplate.update(CREATE, id, userId);
-            updateRate(film.getId());
+            likeDao.addLikeFilm(id, userId);
         } else {
             throw new UserAlreadyExistException("Пользователь уже поставил лайк");
         }
@@ -54,8 +44,7 @@ public class FilmService {
     public List<Long> deleteLikeFilm(long id, long userId) {
         Film film = getFilmById(id);
         if ((film.getLikes().contains(userService.getUserById(userId).getId()))) {
-            jdbcTemplate.update(DELETE, id, userId);
-            updateRate(film.getId());
+            likeDao.deleteLikeFilm(id, userId);
         } else {
             throw new UserDoesNotExistException("Пользователь с идентификатором: " + userId + " еще не ставил лайк.");
         }
@@ -64,50 +53,57 @@ public class FilmService {
 
     //вывод 10 наиболее популярных фильмов по количеству лайков
     public List<Film> getListPopularFilms(int count) {
-        List<Film> filmList = new ArrayList<>();
-        return jdbcTemplate.query(POPULAR, rs -> {
-            while (rs.next()) {
-                Film film = new Film().toBuilder()
-                        .id(rs.getLong("id"))
-                        .name(rs.getString("name"))
-                        .description(rs.getString("description"))
-                        .duration(rs.getInt("duration"))
-                        .releaseDate(rs.getDate("release_date").toLocalDate())
-                        .mpa(filmDbStorage.mpaMapping(rs.getInt("MPA")))
-                        .genres(filmDbStorage.genreMapper(rs.getInt("id")))
-                        .likes(filmDbStorage.likesMapper(rs.getInt("id")))
-                        .build();
-                filmList.add(film);
-            }
-            return filmList;
-        }, count);
+
+        return likeDao.getListPopularFilms(count);
     }
 
     public Film getFilmById(long id) {
-        return filmDbStorage.getFilmById(id).orElseThrow(() -> new FilmDoesNotExistException("фильм не найден"));
+        Film getFilm = filmDao.getFilmById(id).orElseThrow(() -> new FilmDoesNotExistException("фильм не найден"));
+        return setGenreFilm(getFilm);
     }
 
-    public Optional<Film> create(Film film) {
-        return filmDbStorage.create(film);
+    public Film create(Film film) {
+        validatorFilm(film);
+        Film createFilm = filmDao.create(film);
+        return setGenreFilm(createFilm);
     }
 
     public Optional<Film> update(Film film) {
-        getFilmById(film.getId());
-        return filmDbStorage.update(film);
+        filmDao.getFilmById(film.getId())
+                .orElseThrow(() -> new FilmDoesNotExistException("фильм не найден"));
+        validatorFilm(film);
+        List<Genre> filmGenres = film.getGenres();
+        Film updateFilm = setGenreFilm(filmDao.update(film));
+        genreDao.deleteGenre(film.getId());
+        if (filmGenres != null && !filmGenres.isEmpty()) {
+            filmDao.filmBatchUpdate(updateFilm.getId(), new HashSet<>(filmGenres));
+        }
+        return Optional.of(setGenreFilm(updateFilm));
     }
 
     //получение всех фильмов
     public List<Film> findAllFilms() {
-        return filmDbStorage.findAllFilms();
+        return filmDao.findAllFilms();
     }
 
     //удаление фильма
     public void delete(Long id) {
-        filmDbStorage.delete(id);
+        filmDao.delete(id);
     }
 
     //удаление всех фильмов
     public void deleteAll() {
-        filmDbStorage.deleteAll();
+        filmDao.deleteAll();
     }
+
+    public Film setGenreFilm(Film film) {
+        film.setGenres(filmMapper.genreMapper(film.getId()));
+        return film;
+    }
+    private void validatorFilm(Film film) {
+        if (film.getReleaseDate().isBefore(DATE_MIN)) {
+            throw new ValidationException("дата релиза не должна быть раньше 28 декабря 1895 года");
+        }
+    }
+
 }

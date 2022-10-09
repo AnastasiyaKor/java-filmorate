@@ -7,8 +7,6 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.PastOrPresent;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -22,7 +20,6 @@ public class User {
     private String name;
     @PastOrPresent
     private LocalDate birthday;
-    private List<Long> friends = new ArrayList<>();
 
     public User(long id, String name, String email, String login, LocalDate birthday) {
         this.id = id;

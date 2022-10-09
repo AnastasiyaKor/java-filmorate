@@ -1,30 +1,28 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.dao.impl.MpaDbStorage;
+import ru.yandex.practicum.filmorate.dao.MpaDao;
 import ru.yandex.practicum.filmorate.exception.MpaDoesNotExistException;
 import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class MpaService {
-    private final MpaDbStorage mpaDbStorage;
+    private final MpaDao mpaDao;
 
-@Autowired
-    public MpaService(MpaDbStorage mpaDbStorage) {
-        this.mpaDbStorage = mpaDbStorage;
+
+    public List<Mpa> findAllMpa() {
+        return mpaDao.findAllMpa();
     }
 
-    public List<Mpa> findAllMpa(){
-        return mpaDbStorage.findAllMpa();
-    }
-
-    public Mpa getMpaById(int id){
-    if(id <= 0){
-        throw new MpaDoesNotExistException("такого жанра нет");
-    }
-    return mpaDbStorage.getMpaById(id);
+    public Mpa getMpaById(int id) {
+        if (id <= 0) {
+            throw new MpaDoesNotExistException("такого жанра нет");
+        }
+        return mpaDao.getMpaById(id);
     }
 }
