@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.dao.impl;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class FriendsDbStorage implements FriendsDao {
     private final JdbcTemplate jdbcTemplate;
     private static final String ADD_FRIENDS = "INSERT INTO friends (user_id, friend_id) VALUES (?,?)";
@@ -23,16 +25,11 @@ public class FriendsDbStorage implements FriendsDao {
             " WHERE id IN (SELECT friend_id FROM friends WHERE user_id =?) " +
             "AND id IN (SELECT friend_id FROM friends WHERE user_id =?)";
 
-    @Autowired
-    public FriendsDbStorage(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     //добавление в друзья
     @Override
     public void addFriends(long id, long friendId) {
         jdbcTemplate.update(ADD_FRIENDS, id, friendId);
-
     }
 
     //получение id друзей

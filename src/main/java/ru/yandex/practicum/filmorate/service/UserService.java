@@ -46,6 +46,8 @@ public class UserService {
 
     //добавление в друзья
     public List<Long> addFriends(long id, long friendId) {
+        getUserById(id);
+        getUserById(friendId);
         friendsDbStorage.addFriends(id, friendId);
         return friendsDbStorage.addFriendsList(id);
     }
