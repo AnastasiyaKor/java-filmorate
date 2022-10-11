@@ -3,15 +3,14 @@ package ru.yandex.practicum.filmorate.model;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.*;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.PastOrPresent;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Data
 @NoArgsConstructor
 public class User {
-    private List<Long> friends = new ArrayList<>();
     private long id;
     @NotBlank
     @Email
@@ -22,10 +21,18 @@ public class User {
     @PastOrPresent
     private LocalDate birthday;
 
-    public User(String email, String login, String name, LocalDate birthday) {
+    public User(long id, String name, String email, String login, LocalDate birthday) {
+        this.id = id;
+        this.name = name;
         this.email = email;
         this.login = login;
+        this.birthday = birthday;
+    }
+
+    public User(String name, String email, String login, LocalDate birthday) {
         this.name = name;
+        this.email = email;
+        this.login = login;
         this.birthday = birthday;
     }
 }

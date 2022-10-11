@@ -1,13 +1,12 @@
-package ru.yandex.practicum.filmorate.storage;
+package ru.yandex.practicum.filmorate.dao;
 
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface UserStorage {
-
-    User create(User user); //создание пользователя
+public interface UserDao {
+    Optional<User> create(User user); //создание пользователя
 
     User update(User user); //обновление пользователя
 
@@ -15,4 +14,7 @@ public interface UserStorage {
 
     Optional<User> getUserById(long id); // получение пользователя по id
 
+    void delete(Long id); //удаление пользователя по id
+
+    void deleteAll(); //удаление всех пользователей
 }
