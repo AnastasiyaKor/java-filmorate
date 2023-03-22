@@ -30,7 +30,7 @@ ER-диаграмма
 * Maven
 * JUnit
 * Н2
-* Приложение написано на Java 17. Пример кода:
+* Приложение написано на Java 11. Пример кода:
 ```java
 public class Practicum {
     public static void main(String[] args) {
